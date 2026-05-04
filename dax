@@ -1,0 +1,60 @@
+DimDate =
+VAR MinDate =
+    MINX (
+        {
+            MIN ( FactClientWorkflow[rqst_rcvd] ),
+            MIN ( FactClientWorkflow[app_rcvd] ),
+            MIN ( FactClientWorkflow[app_mgmt_comp] ),
+            MIN ( FactClientWorkflow[checklist_complete] ),
+            MIN ( FactClientWorkflow[verif_complete] ),
+            MIN ( FactClientWorkflow[sent_to_client] ),
+            MIN ( FactClientWorkflow[date_completed] ),
+            MIN ( FactClientWorkflow[prior_appt_start] ),
+            MIN ( FactClientWorkflow[prior_appt_end] )
+        },
+        [Value]
+    )
+VAR MaxDate =
+    MAXX (
+        {
+            MAX ( FactClientWorkflow[rqst_rcvd] ),
+            MAX ( FactClientWorkflow[app_rcvd] ),
+            MAX ( FactClientWorkflow[app_mgmt_comp] ),
+            MAX ( FactClientWorkflow[checklist_complete] ),
+            MAX ( FactClientWorkflow[verif_complete] ),
+            MAX ( FactClientWorkflow[sent_to_client] ),
+            MAX ( FactClientWorkflow[date_completed] ),
+            MAX ( FactClientWorkflow[prior_appt_start] ),
+            MAX ( FactClientWorkflow[prior_appt_end] ),
+            TODAY()
+        },
+        [Value]
+    )
+RETURN
+ADDCOLUMNS (
+    CALENDAR ( DATE ( YEAR ( MinDate ) - 1, 1, 1 ), DATE ( YEAR ( MaxDate ) + 1, 12, 31 ) ),
+
+    "DateKey", FORMAT ( [Date], "YYYYMMDD" ),
+    "Year", YEAR ( [Date] ),
+    "Quarter", "Q" & FORMAT ( [Date], "Q" ),
+    "Quarter Number", QUARTER ( [Date] ),
+    "Month Number", MONTH ( [Date] ),
+    "Month Name", FORMAT ( [Date], "MMMM" ),
+    "Month Short", FORMAT ( [Date], "MMM" ),
+    "Year Month", FORMAT ( [Date], "YYYY-MM" ),
+    "Year Month Sort", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+    "Week Number", WEEKNUM ( [Date], 2 ),
+    "Week Start Date", [Date] - WEEKDAY ( [Date], 2 ) + 1,
+    "Week End Date", [Date] - WEEKDAY ( [Date], 2 ) + 7,
+    "Day", DAY ( [Date] ),
+    "Day Name", FORMAT ( [Date], "dddd" ),
+    "Day Short", FORMAT ( [Date], "ddd" ),
+    "Day of Week Number", WEEKDAY ( [Date], 2 ),
+    "Is Weekend", WEEKDAY ( [Date], 2 ) > 5,
+    "Is Business Day", WEEKDAY ( [Date], 2 ) <= 5,
+    "Is Today", [Date] = TODAY(),
+    "Is Current Month", YEAR ( [Date] ) = YEAR ( TODAY() ) && MONTH ( [Date] ) = MONTH ( TODAY() ),
+    "Is Current Year", YEAR ( [Date] ) = YEAR ( TODAY() ),
+    "Relative Month Offset", DATEDIFF ( DATE ( YEAR ( TODAY() ), MONTH ( TODAY() ), 1 ), DATE ( YEAR ( [Date] ), MONTH ( [Date] ), 1 ), MONTH ),
+    "Relative Day Offset", DATEDIFF ( TODAY(), [Date], DAY )
+)
