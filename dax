@@ -1,188 +1,178 @@
-SLA 1 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[rqst_rcvd] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[app_rcvd] ),
-        NETWORKDAYS ( FactClientWorkflow[rqst_rcvd], FactClientWorkflow[app_rcvd] ),
-        NETWORKDAYS ( FactClientWorkflow[rqst_rcvd], TODAY() )
+Total Files Received =
+CALCULATE (
+    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
+    NOT ISBLANK ( FactClientWorkflow[rqst_rcvd] )
+)
+
+Total Files Completed =
+CALCULATE (
+    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
+    NOT ISBLANK ( FactClientWorkflow[sent_to_client] )
+)
+
+Files In Progress =
+CALCULATE (
+    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
+    ISBLANK ( FactClientWorkflow[sent_to_client] ),
+    NOT ISBLANK ( FactClientWorkflow[rqst_rcvd] )
+)
+
+Completed On Time Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] = "Completed On Time"
+)
+
+Completed SLA Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] IN {
+        "Completed On Time",
+        "Completed Exceeded Time"
+    }
+)
+
+Completed On Time % =
+DIVIDE ( [Completed On Time Count], [Completed SLA Count] )
+
+Completed Out of Compliance Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] = "Completed Exceeded Time"
+)
+
+Completed Out of Compliance % =
+DIVIDE ( [Completed Out of Compliance Count], [Completed SLA Count] )
+
+
+
+
+In Progress SLA Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] IN {
+        "Open",
+        "Open At Risk",
+        "Open Exceeded Time"
+    }
+)
+
+In Progress Out of Compliance Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] = "Open Exceeded Time"
+)
+
+In Progress Out of Compliance % =
+DIVIDE ( [In Progress Out of Compliance Count], [In Progress SLA Count] )
+
+
+
+In Progress At Risk Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] = "Open At Risk"
+)
+
+In Progress At Risk % =
+DIVIDE ( [In Progress At Risk Count], [In Progress SLA Count] )
+
+
+
+Average Business Days by SLA Stage =
+AVERAGE ( FactWorkflowSLA[StageElapsedDays] )
+
+DimSLAStage[SLA Stage]
+
+
+
+Median Business Days by SLA Stage =
+MEDIAN ( FactWorkflowSLA[StageElapsedDays] )
+
+
+
+End-to-End Cycle Time =
+CALCULATE (
+    AVERAGE ( FactWorkflowSLA[StageElapsedDays] ),
+    FactWorkflowSLA[SLAStageKey] = 7
+)
+
+End-to-End Cycle Time Completed Only =
+CALCULATE (
+    AVERAGE ( FactWorkflowSLA[StageElapsedDays] ),
+    FactWorkflowSLA[SLAStageKey] = 7,
+    FactWorkflowSLA[SLAStatus] IN {
+        "Completed On Time",
+        "Completed Exceeded Time"
+    }
+)
+
+
+
+Recred Completed Before Expiration Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStageKey] = 8,
+    FactWorkflowSLA[SLAStatus] = "Completed On Time"
+)
+
+Recred Completed Count =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStageKey] = 8,
+    FactWorkflowSLA[SLAStatus] IN {
+        "Completed On Time",
+        "Completed Exceeded Time"
+    }
+)
+
+Recred Files Completed Before Expiration % =
+DIVIDE (
+    [Recred Completed Before Expiration Count],
+    [Recred Completed Count]
+)
+
+
+
+Backlog by SLA Stage =
+CALCULATE (
+    COUNTROWS ( FactWorkflowSLA ),
+    FactWorkflowSLA[SLAStatus] IN {
+        "Open",
+        "Open At Risk",
+        "Open Exceeded Time"
+    }
+)
+
+
+Highest Backlog Stage =
+VAR StageBacklogTable =
+    ADDCOLUMNS (
+        VALUES ( DimSLAStage[SLA Stage] ),
+        "BacklogCount", [Backlog by SLA Stage]
     )
-)
-
-SLA 1 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[rqst_rcvd] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[app_rcvd] ) && FactClientWorkflow[SLA 1 Time] > 5, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[app_rcvd] ), "Completed On Time",
-    FactClientWorkflow[SLA 1 Time] > 5, "Open Exceeded Time",
-    FactClientWorkflow[SLA 1 Time] > 3, "Open At Risk",
-    "Open"
-)
-
-SLA 2 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[app_rcvd] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[app_mgmt_comp] ),
-        NETWORKDAYS ( FactClientWorkflow[app_rcvd], FactClientWorkflow[app_mgmt_comp] ),
-        NETWORKDAYS ( FactClientWorkflow[app_rcvd], TODAY() )
+VAR TopStage =
+    TOPN (
+        1,
+        StageBacklogTable,
+        [BacklogCount],
+        DESC
     )
-)
-
-SLA 2 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[app_rcvd] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[app_mgmt_comp] ) && FactClientWorkflow[SLA 2 Time] > 5, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[app_mgmt_comp] ), "Completed On Time",
-    FactClientWorkflow[SLA 2 Time] > 5, "Open Exceeded Time",
-    FactClientWorkflow[SLA 2 Time] > 3, "Open At Risk",
-    "Open"
-)
-
-SLA 3 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[app_mgmt_comp] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[checklist_complete] ),
-        NETWORKDAYS ( FactClientWorkflow[app_mgmt_comp], FactClientWorkflow[checklist_complete] ),
-        NETWORKDAYS ( FactClientWorkflow[app_mgmt_comp], TODAY() )
-    )
-)
-
-SLA 3 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[app_mgmt_comp] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[checklist_complete] ) && FactClientWorkflow[SLA 3 Time] > 15, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[checklist_complete] ), "Completed On Time",
-    FactClientWorkflow[SLA 3 Time] > 15, "Open Exceeded Time",
-    FactClientWorkflow[SLA 3 Time] > 12, "Open At Risk",
-    "Open"
-)
-
-SLA 4 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[checklist_complete] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[verif_complete] ),
-        NETWORKDAYS (
-            FactClientWorkflow[checklist_complete],
-            MAX ( FactClientWorkflow[checklist_complete], FactClientWorkflow[verif_complete] )
-        ),
-        NETWORKDAYS ( FactClientWorkflow[checklist_complete], TODAY() )
-    )
-)
-
-SLA 4 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[checklist_complete] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[verif_complete] ) && FactClientWorkflow[SLA 4 Time] > 10, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[verif_complete] ), "Completed On Time",
-    FactClientWorkflow[SLA 4 Time] > 10, "Open Exceeded Time",
-    FactClientWorkflow[SLA 4 Time] > 7, "Open At Risk",
-    "Open"
-)
-
-SLA 5 Time =
-VAR StartDate =
-    MAX ( FactClientWorkflow[checklist_complete], FactClientWorkflow[verif_complete] )
 RETURN
-IF (
-    ISBLANK ( FactClientWorkflow[checklist_complete] )
-        || ISBLANK ( FactClientWorkflow[verif_complete] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( StartDate, FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( StartDate, TODAY() )
+    CONCATENATEX (
+        TopStage,
+        DimSLAStage[SLA Stage],
+        ", "
     )
+
+
+Highest Backlog Stage Count =
+MAXX (
+    ADDCOLUMNS (
+        VALUES ( DimSLAStage[SLA Stage] ),
+        "BacklogCount", [Backlog by SLA Stage]
+    ),
+    [BacklogCount]
 )
 
-SLA 5 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[checklist_complete] )
-        || ISBLANK ( FactClientWorkflow[verif_complete] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ) && FactClientWorkflow[SLA 5 Time] > 4, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ), "Completed On Time",
-    FactClientWorkflow[SLA 5 Time] > 4, "Open Exceeded Time",
-    FactClientWorkflow[SLA 5 Time] > 2, "Open At Risk",
-    "Open"
-)
 
-SLA 6 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[checklist_complete] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( FactClientWorkflow[checklist_complete], FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( FactClientWorkflow[checklist_complete], TODAY() )
-    )
-)
-
-SLA 6 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[checklist_complete] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ) && FactClientWorkflow[SLA 6 Time] > 30, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ), "Completed On Time",
-    FactClientWorkflow[SLA 6 Time] > 30, "Open Exceeded Time",
-    FactClientWorkflow[SLA 6 Time] > 25, "Open At Risk",
-    "Open"
-)
-
-SLA 7 Time =
-IF (
-    ISBLANK ( FactClientWorkflow[rqst_rcvd] ),
-    0,
-    IF (
-        NOT ISBLANK ( FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( FactClientWorkflow[rqst_rcvd], FactClientWorkflow[sent_to_client] ),
-        NETWORKDAYS ( FactClientWorkflow[rqst_rcvd], TODAY() )
-    )
-)
-
-SLA 7 Status =
-SWITCH (
-    TRUE(),
-    ISBLANK ( FactClientWorkflow[rqst_rcvd] ), "Not In process yet",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ) && FactClientWorkflow[SLA 7 Time] > 30, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ), "Completed On Time",
-    FactClientWorkflow[SLA 7 Time] > 30, "Open Exceeded Time",
-    FactClientWorkflow[SLA 7 Time] > 25, "Open At Risk",
-    "Open"
-)
-
-SLA 8 Time =
-IF (
-    FactClientWorkflow[apptmnt_type] = "I",
-    0,
-    IF (
-        ISBLANK ( FactClientWorkflow[prior_appt_end] ),
-        0,
-        IF (
-            NOT ISBLANK ( FactClientWorkflow[sent_to_client] ),
-            DATEDIFF ( FactClientWorkflow[prior_appt_end], FactClientWorkflow[sent_to_client], DAY ),
-            DATEDIFF ( FactClientWorkflow[prior_appt_end], TODAY(), DAY )
-        )
-    )
-)
-
-SLA 8 Status =
-SWITCH (
-    TRUE(),
-    FactClientWorkflow[apptmnt_type] = "I", "Not A Recred",
-    ISBLANK ( FactClientWorkflow[prior_appt_end] ), "No Prior Recred Date",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ) && FactClientWorkflow[SLA 8 Time] > 0, "Completed Exceeded Time",
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] ), "Completed On Time",
-    FactClientWorkflow[SLA 8 Time] > 0, "Open Exceeded Time",
-    FactClientWorkflow[SLA 8 Time] > -5, "Open At Risk",
-    "Open"
-)
