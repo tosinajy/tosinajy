@@ -1,178 +1,277 @@
-Total Files Received =
-CALCULATE (
-    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
-    NOT ISBLANK ( FactClientWorkflow[rqst_rcvd] )
-)
-
-Total Files Completed =
-CALCULATE (
-    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
-    NOT ISBLANK ( FactClientWorkflow[sent_to_client] )
-)
-
-Files In Progress =
-CALCULATE (
-    DISTINCTCOUNT ( FactClientWorkflow[WorkflowKey] ),
-    ISBLANK ( FactClientWorkflow[sent_to_client] ),
-    NOT ISBLANK ( FactClientWorkflow[rqst_rcvd] )
-)
-
-Completed On Time Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] = "Completed On Time"
-)
-
-Completed SLA Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] IN {
-        "Completed On Time",
-        "Completed Exceeded Time"
+{
+  "name": "Premium Client Health Theme",
+  "dataColors": [
+    "#2563EB",
+    "#16A34A",
+    "#F59E0B",
+    "#DC2626",
+    "#7C3AED",
+    "#0891B2",
+    "#6B7280",
+    "#111827"
+  ],
+  "background": "#F8FAFC",
+  "foreground": "#111827",
+  "tableAccent": "#2563EB",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#E5E7EB"
+              }
+            },
+            "radius": 10
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ],
+        "title": [
+          {
+            "show": true,
+            "fontColor": {
+              "solid": {
+                "color": "#111827"
+              }
+            },
+            "fontSize": 12,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ],
+        "labels": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#374151"
+              }
+            },
+            "fontSize": 10,
+            "fontFamily": "Segoe UI"
+          }
+        ]
+      }
+    },
+    "card": {
+      "*": {
+        "categoryLabels": [
+          {
+            "show": true,
+            "fontColor": {
+              "solid": {
+                "color": "#6B7280"
+              }
+            },
+            "fontSize": 10,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ],
+        "labels": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#111827"
+              }
+            },
+            "fontSize": 28,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ]
+      }
+    },
+    "lineChart": {
+      "*": {
+        "legend": [
+          {
+            "show": true,
+            "position": "Top",
+            "fontSize": 10,
+            "fontColor": {
+              "solid": {
+                "color": "#374151"
+              }
+            }
+          }
+        ],
+        "categoryAxis": [
+          {
+            "show": true,
+            "fontColor": {
+              "solid": {
+                "color": "#6B7280"
+              }
+            },
+            "fontSize": 10
+          }
+        ],
+        "valueAxis": [
+          {
+            "show": true,
+            "fontColor": {
+              "solid": {
+                "color": "#6B7280"
+              }
+            },
+            "fontSize": 10,
+            "gridlineColor": {
+              "solid": {
+                "color": "#E5E7EB"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "barChart": {
+      "*": {
+        "categoryAxis": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#374151"
+              }
+            },
+            "fontSize": 10
+          }
+        ],
+        "valueAxis": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#6B7280"
+              }
+            },
+            "fontSize": 10,
+            "gridlineColor": {
+              "solid": {
+                "color": "#E5E7EB"
+              }
+            }
+          }
+        ],
+        "dataPoint": [
+          {
+            "defaultColor": {
+              "solid": {
+                "color": "#2563EB"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "matrix": {
+      "*": {
+        "grid": [
+          {
+            "gridVertical": false,
+            "gridHorizontal": true,
+            "outlineColor": {
+              "solid": {
+                "color": "#E5E7EB"
+              }
+            }
+          }
+        ],
+        "columnHeaders": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#111827"
+              }
+            },
+            "backColor": {
+              "solid": {
+                "color": "#F3F4F6"
+              }
+            },
+            "fontSize": 10,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ],
+        "rowHeaders": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#374151"
+              }
+            },
+            "fontSize": 10
+          }
+        ],
+        "values": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#111827"
+              }
+            },
+            "fontSize": 10
+          }
+        ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "title": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#111827"
+              }
+            },
+            "fontSize": 11,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ],
+        "items": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#374151"
+              }
+            },
+            "fontSize": 10
+          }
+        ]
+      }
     }
-)
-
-Completed On Time % =
-DIVIDE ( [Completed On Time Count], [Completed SLA Count] )
-
-Completed Out of Compliance Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] = "Completed Exceeded Time"
-)
-
-Completed Out of Compliance % =
-DIVIDE ( [Completed Out of Compliance Count], [Completed SLA Count] )
-
-
-
-
-In Progress SLA Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] IN {
-        "Open",
-        "Open At Risk",
-        "Open Exceeded Time"
+  },
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 20,
+      "color": "#111827"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 14,
+      "color": "#111827"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#6B7280"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 28,
+      "color": "#111827"
     }
-)
-
-In Progress Out of Compliance Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] = "Open Exceeded Time"
-)
-
-In Progress Out of Compliance % =
-DIVIDE ( [In Progress Out of Compliance Count], [In Progress SLA Count] )
-
-
-
-In Progress At Risk Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] = "Open At Risk"
-)
-
-In Progress At Risk % =
-DIVIDE ( [In Progress At Risk Count], [In Progress SLA Count] )
-
-
-
-Average Business Days by SLA Stage =
-AVERAGE ( FactWorkflowSLA[StageElapsedDays] )
-
-DimSLAStage[SLA Stage]
-
-
-
-Median Business Days by SLA Stage =
-MEDIAN ( FactWorkflowSLA[StageElapsedDays] )
-
-
-
-End-to-End Cycle Time =
-CALCULATE (
-    AVERAGE ( FactWorkflowSLA[StageElapsedDays] ),
-    FactWorkflowSLA[SLAStageKey] = 7
-)
-
-End-to-End Cycle Time Completed Only =
-CALCULATE (
-    AVERAGE ( FactWorkflowSLA[StageElapsedDays] ),
-    FactWorkflowSLA[SLAStageKey] = 7,
-    FactWorkflowSLA[SLAStatus] IN {
-        "Completed On Time",
-        "Completed Exceeded Time"
-    }
-)
-
-
-
-Recred Completed Before Expiration Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStageKey] = 8,
-    FactWorkflowSLA[SLAStatus] = "Completed On Time"
-)
-
-Recred Completed Count =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStageKey] = 8,
-    FactWorkflowSLA[SLAStatus] IN {
-        "Completed On Time",
-        "Completed Exceeded Time"
-    }
-)
-
-Recred Files Completed Before Expiration % =
-DIVIDE (
-    [Recred Completed Before Expiration Count],
-    [Recred Completed Count]
-)
-
-
-
-Backlog by SLA Stage =
-CALCULATE (
-    COUNTROWS ( FactWorkflowSLA ),
-    FactWorkflowSLA[SLAStatus] IN {
-        "Open",
-        "Open At Risk",
-        "Open Exceeded Time"
-    }
-)
-
-
-Highest Backlog Stage =
-VAR StageBacklogTable =
-    ADDCOLUMNS (
-        VALUES ( DimSLAStage[SLA Stage] ),
-        "BacklogCount", [Backlog by SLA Stage]
-    )
-VAR TopStage =
-    TOPN (
-        1,
-        StageBacklogTable,
-        [BacklogCount],
-        DESC
-    )
-RETURN
-    CONCATENATEX (
-        TopStage,
-        DimSLAStage[SLA Stage],
-        ", "
-    )
-
-
-Highest Backlog Stage Count =
-MAXX (
-    ADDCOLUMNS (
-        VALUES ( DimSLAStage[SLA Stage] ),
-        "BacklogCount", [Backlog by SLA Stage]
-    ),
-    [BacklogCount]
-)
-
-
+  }
+}
